@@ -22,4 +22,4 @@
 
 ## Пример программы
 
-[пример](https://github.com/xrombik/Pipistrellus/blob/main/main.c)
+[показать](https://github.com/xrombik/Pipistrellus/blob/main/main.c)
