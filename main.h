@@ -1,8 +1,16 @@
 
+#include <stdint.h>
+#include <stdbool.h>
+#include <string.h>
+#include <stdio.h>
+
+#include "pipistrellus.h"
+
+
 /** Заполняет buffer данными "с провода".
-Определяется пользователем и особенностями используемого оборудования */
+Определяется пользователем и используемым оборудованием */
 uint32_t hw_receive(uint8_t* data, uint32_t size);
 
 /** Передаёт содержимое buffer оборудованию "на провод".
-Определяется пользователем и особенностями используемого оборудования */
-uint32_t hw_transmit(uint8_t* data, uint32_t size, mac_addr* maddr);
+Определяется пользователем и используемым оборудованием */
+uint32_t hw_transmit(uint8_t* data, uint32_t size);
