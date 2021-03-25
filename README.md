@@ -25,7 +25,9 @@
 ```C
 
 #include <stdint.h>
+
 #include "pipistrellus.h"
+#include "main.h"
 
 const char* MAC_SRC = {0x01, 0x02, 0x03, 0x04, 0x05};
 const char* MAC_DST = {0xff, 0xff, 0xff, 0xff, 0xff};
@@ -80,11 +82,11 @@ int main(int argc, char** argv)
     /* Здесь пользователь может отправить данные в сеть, например так: */
     if (udp_buffer.size > 10)
     {
-      buffer udp_tx_buffer;
-      if (udp_get_data(&tx_buffer, &udp_tx_buffer))
+      buffer tx_buffer;
+      if (udp_get_data(&tx_buffer, &tx_buffer))
       {
-        udp_buffer.size = strcpy(udp_buffer.data, "pipistrellus");
-        udp_send(&tx_buffer, &udp_src, &udp_dst, udp_buffer.size);
+        tx_buffer.size = strcpy(tx_buffer.data, "pipistrellus");
+        udp_send(&tx_buffer, &udp_src, &udp_dst);
         mac_send(&tx_buffer, &mac_addr);
         hw_transmit(tx_buffer.data, tx_buffer.size);
       }
