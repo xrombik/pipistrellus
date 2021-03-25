@@ -85,7 +85,7 @@ uint32_t hw_receive(uint8_t* data, uint32_t size)
   return i;
 }
 
-/* Передаёт содержимое buffer оборудованию "на провод".
+/** Передаёт содержимое buffer оборудованию "на провод".
 Определяется пользователем и особенностями используемого оборудования */
 uint32_t hw_transmit(uint8_t* data, uint32_t size, mac_addr* maddr)
 {
