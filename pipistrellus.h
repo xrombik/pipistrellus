@@ -4,6 +4,18 @@
 #include <stdint.h>
 #include <string.h>
 
+#pragma pack(push, 1)
+
+
+#define swap16(x)   \
+  ((uint16_t) ((((x) >> 8U) & 0xff) | (((x) & 0xff) << 8U)))
+
+
+#define bswap32(x)  \
+  ((((x) & 0xff000000u) >> 24) | (((x) & 0x00ff0000u) >> 8)    \
+   | (((x) & 0x0000ff00u) << 8) | (((x) & 0x000000ffu) << 24))
+
+
 typedef struct
 {
   uint32_t size_used;
@@ -11,18 +23,33 @@ typedef struct
   uint8_t* data;
 } buffer;
 
+
+/*! \defgroup mac_addrs ETH-протокол @{ */
+#define ETH_TYPE_ARP  swap16  (0x0806)
+
 typedef struct
 {
   uint8_t dst[6]; /* mac-адрес назачения (кому) */
   uint8_t src[6]; /* mac-адрес источика (от кого) */
   uint16_t type;  /* тип протокола */
 } mac_addrs;
+/*! @} */
 
 typedef struct  
 {
-  uint16_t port;
-  uint32_t addr;
+  union
+  {
+    uint8_t bytes[2];
+    uint16_t word;
+  } port;
+  
+  union
+  {
+    uint8_t bytes[4];
+    uint32_t dword;
+  } addr;
 } udp_addr;
+
 
 typedef struct 
 {
@@ -30,13 +57,14 @@ typedef struct
   buffer* tx_buffer;
 } wire;
 
-/*! \defgroup mac_addrs ARP-протокол @{ */
+/*! \defgroup arp_addrs ARP-протокол @{ */
 
-#define ARP_ASQ   1  /* Значение arp_frame::opcode - запрос */
-#define ARP_REP   2  /* Значение arp_frame::opcode - ответ */
+#define ARP_ASQ   swap16  (     1)       /* Значение arp_frame::opcode - запрос */
+#define ARP_REP   swap16  (     2)       /* Значение arp_frame::opcode - ответ */
+
 
 /** Формат arp-запроса и arp-ответа */
-typedef struct
+typedef struct arp_frame
 {
   mac_addrs maddrs;       /*  */
   uint16_t  hw_type;      /*  */
@@ -87,6 +115,10 @@ typedef struct
 
 } icmp_header;
 
+#pragma pack(pop)
+
+
+bool mac_init_addr(mac_addrs* maddr, const uint8_t* src, const uint8_t* dst);
 
 /*! Заполняет поля x_buffer
 \param[out] x_buffer Буфер в котором будет размещён mac-адрес
@@ -115,25 +147,28 @@ bool icmp_send(buffer* tx_buffer, const buffer* rx_buffer);
 bool arp_receive(const buffer* rx_buffer, const mac_addrs* maddr, uint32_t ip_addr);
 
 /** */
-bool arp_send(buffer* tx_buffer, const buffer* rx_buffer, const mac_addrs* mac_addr);
+bool arp_send(buffer* tx_buffer, const buffer* rx_buffer, const mac_addrs* mac_addr, uint32_t ip_addr);
 
 /** */
-bool udp_get_buffer(const buffer* x_buffer,  buffer* udp_buffer);
+bool udp_init_addr(udp_addr* udp_addr, const uint8_t* addr, const uint16_t port);
 
 /** */
-bool udp_get_src(const buffer* x_buffer,  udp_addr* addr);
+bool udp_get_buffer(const buffer* x_buffer, buffer* udp_buffer);
 
 /** */
-bool udp_get_dst(const buffer* x_buffer,  udp_addr* addr);
+bool udp_get_src(const buffer* x_buffer, udp_addr* addr);
 
 /** */
-bool udp_cmp_src(const buffer* x_buffer,  const udp_addr* addr);
+bool udp_get_dst(const buffer* x_buffer, udp_addr* addr);
 
 /** */
-bool udp_cmp_dst(const buffer* x_buffer,  const udp_addr* addr);
+bool udp_cmp_src(const buffer* x_buffer, const udp_addr* addr);
 
 /** */
-bool udp_receive(const buffer* x_buffer,  const udp_addr* src, const udp_addr* dst);
+bool udp_cmp_dst(const buffer* x_buffer, const udp_addr* addr);
+
+/** */
+bool udp_receive(const buffer* x_buffer, const udp_addr* src, const udp_addr* dst);
 
 /** */
 bool udp_set_src(buffer* tx_buffer, udp_addr* addr);

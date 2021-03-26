@@ -1,0 +1,19 @@
+﻿project(pipistrellus)
+cmake_minimum_required(VERSION 2.8)
+set(CPPSTD "c++11")
+
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}")
+
+aux_source_directory(. SRC_LIST)
+message(STATUS "SRC_LIST:\"${SRC_LIST}\"")
+
+message(STATUS "CMAKE_BUILD_TYPE: \"${CMAKE_BUILD_TYPE}\"")
+if (CMAKE_BUILD_TYPE STREQUAL Release)
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPNG_SKIP_SETJMP_CHECK -march=native -mtune=native -flto -fpic -pedantic -Wall -Wfatal-errors -s -Os --std=${CPPSTD}")
+else()
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DPNG_SKIP_SETJMP_CHECK -fstack-protector-all -fstack-check -fstack-protector-strong -fsanitize=bounds -fsanitize=vla-bound -fsanitize=leak -pedantic -fsanitize=address -Wall -Wfatal-errors -g -O0 --std=${CPPSTD}")
+endif()
+
+#set(EXECUTABLE_OUTPUT_PATH "./build")
+add_executable(${PROJECT_NAME} ${SRC_LIST})
+target_link_libraries(${PROJECT_NAME} ${OPENGL_LIBRARIES} ${GLUT_LIBRARY} ${FREETYPE_LIBRARIES} ${PCAP_LIBRARY} ${GLFW_LIBRARY} ${PNG_LIBRARY})
