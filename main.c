@@ -21,7 +21,7 @@ const uint8_t NULL_ADDR[] = {0x00, 0x00, 0x00, 0x00};
 
 
 #define TEST_CASES_COUNT  1
-void* test_cases_data[TEST_CASES_COUNT];
+const void* test_cases_data[TEST_CASES_COUNT];
 uint32_t test_cases_len[TEST_CASES_COUNT];
 uint32_t test_cases_i = 0;
 
