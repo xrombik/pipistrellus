@@ -1,3 +1,5 @@
+![Open for everyone](pipistrellus.jpeg)
+
 # Нетопырь *(лат. - pipistrellus)*
 
 Тонкая библиотека для управления UDP и ICMP датаграммами
