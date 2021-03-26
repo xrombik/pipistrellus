@@ -24,4 +24,4 @@
 
 ## Пример программы
 
-[показать](https://github.com/xrombik/Pipistrellus/blob/main/main.c)
+[показать](main.c)
