@@ -1,5 +1,11 @@
-![Open for everyone](pipistrellus.jpeg)
+
+# Текущее состояние
+
 [![CMake](https://github.com/xrombik/pipistrellus/actions/workflows/cmake.yml/badge.svg)](https://github.com/xrombik/pipistrellus/actions/workflows/cmake.yml)
+
+*в процессе разработки ...*
+
+![Open for everyone](pipistrellus.jpeg)
 
 # Нетопырь *(лат. - pipistrellus)*
 
@@ -8,8 +14,9 @@
 
 # Особенности
 
-1. Операция копирования используется только для служебных полей
-2. Динамическое выделение памяти не используется
+1. Операции копирования производит только для служебных полей
+2. Динамическое выделение памяти не использует
+3. Зависит только от стандартой библиотеки Си
 
 # Ограничения
 
