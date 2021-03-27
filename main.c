@@ -6,7 +6,9 @@
 #define BUFFER_SIZE 1500
 
 extern const uint8_t arp_asq_0[60];
-extern const uint8_t arp_rep_0[60];
+extern const uint8_t arp_rep_0[42];
+
+
 extern uint8_t MAC_BROADCAST[6];
 
 /* mac-адрес этого узла */
@@ -23,7 +25,12 @@ const uint8_t NULL_ADDR[] = {0x00, 0x00, 0x00, 0x00};
 #define TEST_CASES_COUNT  1
 const void* test_cases_data[TEST_CASES_COUNT];
 uint32_t test_cases_len[TEST_CASES_COUNT];
-uint32_t test_cases_i = 0;
+uint32_t test_case_i = 0;
+
+const void* test_repl_data[TEST_CASES_COUNT];
+uint32_t test_repl_len[TEST_CASES_COUNT];
+uint32_t test_repl_i = 0;
+
 
 int main(int argc, char** argv)
 {
@@ -57,6 +64,9 @@ int main(int argc, char** argv)
   /* Заполнение тестовых случаев */
   test_cases_data[0] = arp_asq_0;
   test_cases_len[0] = sizeof arp_asq_0;
+  test_repl_data[0] = arp_rep_0;
+  test_repl_len[0] = sizeof arp_rep_0;
+
 
   /* Здесь оборудование должно быть готово для приёма и передачи данных */
   for (uint32_t i = 0U; i < sizeof test_cases_data / sizeof test_cases_data[0]; i ++)
@@ -103,7 +113,7 @@ int main(int argc, char** argv)
       }
     }
     hw_transmit(tx_buffer.data, tx_buffer.size_used);
-    test_cases_i ++;
+    test_case_i ++;
   }
   return EXIT_SUCCESS;
 }
@@ -113,20 +123,21 @@ uint32_t hw_receive(uint8_t* data, uint32_t size)
 {
   /* Здесь выполняют работу с оборудованием, для получения данных "с провода".
      Данные из оборудования заносят в buffer */
-  memcpy(data, test_cases_data[test_cases_i], sizeof arp_asq_0);
-  return sizeof arp_asq_0;
+  memcpy(data, test_cases_data[test_case_i], test_cases_len[test_case_i]);
+  return test_cases_len[test_case_i];
 }
 
 
 uint32_t hw_transmit(uint8_t* data, uint32_t size)
 {
   /* Здесь выполняют работу с оборудованием, для выставления данных "на провод"
-  Данные из data передают в оборудование */
-  if (size != test_cases_len[test_cases_i])
+     Данные из data передают в оборудование */
+  if (size != test_repl_len[test_case_i])
+    exit(EXIT_FAILURE);
   for (uint32_t i = 0; i < size; i ++)
   {
     printf("[%02u] %02x : %02x\n", i, arp_rep_0[i], data[i]);
-    if (arp_rep_0[i] != data[i])
+    if (((uint8_t*)test_repl_data[test_case_i])[i] != data[i])
       exit(EXIT_FAILURE);
   }
   return size;

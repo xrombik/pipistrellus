@@ -2,6 +2,7 @@
     "files.associations": {
         "pipistrellus.h": "c",
         "stdint.h": "c",
-        "stdint-gcc.h": "c"
+        "stdint-gcc.h": "c",
+        "main.h": "c"
     }
 }

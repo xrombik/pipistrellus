@@ -1,15 +1,15 @@
 #include <stdint.h>
 
-/*  1400 Address Resolution Protocol (request)
-    Hardware type: Ethernet (1)
-    Protocol type: IPv4 (0x0800)
-    Hardware size: 6
-    Protocol size: 4
-    Opcode: request (1)
-    Sender MAC address: 00: 1e:67:13:ce:54
-    Sender IP address:  (172.16.1.30)
-    Target MAC address: 70:4d:7b:65:2a:d0
-    Target IP address: 172.16.2.10 (172.16.2.10) */
+/*  \brief 1400 Address Resolution Protocol (request)
+    \param Hardware type: Ethernet (1)
+    \param Protocol type: IPv4 (0x0800)
+    \param Hardware size: 6
+    \param Protocol size: 4
+    \param Opcode: request (1)
+    \param Sender MAC address: 00: 1e:67:13:ce:54
+    \param Sender IP address:  (172.16.1.30)
+    \param Target MAC address: 70:4d:7b:65:2a:d0
+    \param Target IP address: 172.16.2.10 (172.16.2.10) */
 const uint8_t arp_asq_0[60] = {
 0x70, 0x4d, 0x7b, 0x65, 0x2a, 0xd0, 0x00, 0x1e, /* pM{e*... */
 0x67, 0x13, 0xce, 0x54, 0x08, 0x06, 0x00, 0x01, /* g..T.... */
@@ -21,16 +21,16 @@ const uint8_t arp_asq_0[60] = {
 0x00, 0x00, 0x00, 0x00 };                       /* .... */
 
 
-/*  1401 Address Resolution Protocol (reply)
-    Hardware type: Ethernet (1)
-    Protocol type: IPv4 (0x0800)
-    Hardware size: 6
-    Protocol size: 4
-    Opcode: reply (2)
-    Sender MAC address: 70:4d:7b:65:2a:d0
-    Sender IP address: (172.16.2.10)
-    Target MAC address: 00:1e:67:13:ce:54
-    Target IP address: (172.16.1.30) */
+/*  \brief 1401 Address Resolution Protocol (reply)
+    \param Hardware type: Ethernet (1)
+    \param Protocol type: IPv4 (0x0800)
+    \param Hardware size: 6
+    \param Protocol size: 4
+    \param Opcode: reply (2)
+    \param Sender MAC address: 70:4d:7b:65:2a:d0
+    \param Sender IP address: (172.16.2.10)
+    \param Target MAC address: 00:1e:67:13:ce:54
+    \param Target IP address: (172.16.1.30) */
 const uint8_t arp_rep_0[42] = {
 0x00, 0x1e, 0x67, 0x13, 0xce, 0x54, 0x70, 0x4d, /* ..g..TpM */
 0x7b, 0x65, 0x2a, 0xd0, 0x08, 0x06, 0x00, 0x01, /* {e*..... */
