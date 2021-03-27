@@ -1,4 +1,5 @@
 ![Open for everyone](pipistrellus.jpeg)
+[![CMake](https://github.com/xrombik/pipistrellus/actions/workflows/cmake.yml/badge.svg)](https://github.com/xrombik/pipistrellus/actions/workflows/cmake.yml)
 
 # Нетопырь *(лат. - pipistrellus)*
 
