@@ -3,6 +3,8 @@
 #include "pipistrellus.h"
 #include "main.h"
 
+/** \file */
+
 #define BUFFER_SIZE 1500
 
 extern const uint8_t arp_asq_0[60];
@@ -14,7 +16,7 @@ extern uint8_t MAC_BROADCAST[6];
 /* mac-адрес этого узла */
 const uint8_t MAC_SRC[] = {0x70, 0x4d, 0x7b, 0x65, 0x2a, 0xd0};
 
-/* ip-aдрес этого узла */
+/* ip-адрес этого узла */
 const uint8_t IP_ADDR[] = {172, 16, 2, 10};
 const uint16_t IP_PORT = 50090;
 
@@ -38,9 +40,8 @@ int main(int argc, char** argv)
      Нетопырю всё равно что здесь происходит
      ... */
 
-  /*! \defgroup init Размещение памяти
-      \brief Здесь пользователь сообщает нетопырю
-      адреса и размеры буферов для приёма и передачи @{ */
+  /* Здесь пользователь сообщает нетопырю адреса
+     и размеры буферов для приёма и передачи */
   buffer rx_buffer;
   uint8_t rx_data[BUFFER_SIZE] = {0};
   rx_buffer.data = rx_data;
@@ -50,8 +51,7 @@ int main(int argc, char** argv)
   uint8_t tx_data[BUFFER_SIZE] = {0};
   tx_buffer.data = tx_data;
   tx_buffer.size_alloc = sizeof tx_data;
-  /*! @} */
-
+  
   mac_addrs maddr;
   mac_init_addr(&maddr, MAC_SRC, MAC_BROADCAST);
 
@@ -73,11 +73,12 @@ int main(int argc, char** argv)
   {
     /* Получить пакет "с провода" */
     rx_buffer.size_used = hw_receive(rx_buffer.data, rx_buffer.size_alloc);
-    if (!rx_buffer.size_used)
+
+    if (!mac_receive(&rx_buffer, &maddr))
       continue;
-    
+
     /* Здесь нетопырь ожидает, что rx_buffer.data будет содержать mac-адреса,
-    тип, IP-заголовок и данные, а rx_buffer.size длину eth-фрейма */
+       тип, IP-заголовок и данные, а rx_buffer.size длину eth-фрейма */
     
     /* Здесь нетопырь обработает запросы ICMP */
     if (icmp_receive(&rx_buffer, &maddr, self_addr.addr.dword))
@@ -109,7 +110,7 @@ int main(int argc, char** argv)
         strncpy(udp_tx_buffer.data, "pipistrellus", udp_tx_buffer.size_alloc);
         udp_tx_buffer.size_used = strlen(udp_tx_buffer.data) + sizeof '\0';
         udp_send(&tx_buffer, &self_addr, &trgt_addr);
-        mac_send(&tx_buffer, &maddr);
+        mac_set_addr(&tx_buffer, &maddr);
       }
     }
     hw_transmit(tx_buffer.data, tx_buffer.size_used);
@@ -130,8 +131,9 @@ uint32_t hw_receive(uint8_t* data, uint32_t size)
 
 uint32_t hw_transmit(uint8_t* data, uint32_t size)
 {
-  /* Здесь выполняют работу с оборудованием, для выставления данных "на провод"
-     Данные из data передают в оборудование */
+  /* Здесь выполняют работу с оборудованием, для
+     выставления данных "на провод". Данные из
+     data передают в оборудование */
   if (size != test_repl_len[test_case_i])
     exit(EXIT_FAILURE);
   for (uint32_t i = 0; i < size; i ++)

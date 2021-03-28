@@ -3,6 +3,7 @@
         "pipistrellus.h": "c",
         "stdint.h": "c",
         "stdint-gcc.h": "c",
-        "main.h": "c"
+        "main.h": "c",
+        "stdbool.h": "c"
     }
 }

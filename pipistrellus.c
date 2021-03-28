@@ -1,11 +1,13 @@
 #include "pipistrellus.h"
 
 
-const uint8_t MAC_BROADCAST[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+const uint8_t MAC_BROADCAST[]   = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+const uint8_t MAC_ZERO[]        = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 
-bool udp_init_addr(udp_addr* udp_addr, const uint8_t* addr, const uint16_t port)
+void udp_init_addr(udp_addr* udp_addr, const uint8_t* addr, const uint16_t port)
 {
+    // TODO: Заглушка
     memcpy(&udp_addr->addr.dword, addr, sizeof udp_addr->addr.dword);
     uint8_t* p = (uint8_t*) &port;
     udp_addr->port.bytes[0] = p[1];
@@ -15,12 +17,14 @@ bool udp_init_addr(udp_addr* udp_addr, const uint8_t* addr, const uint16_t port)
 
 bool udp_receive(const buffer* rx_buffer,  const udp_addr* src, const udp_addr* dst)
 {
+    // TODO: Заглушка
     return false;
 }
 
 
 bool udp_send(buffer* tx_buffer, const udp_addr* src, const udp_addr* dst)
 {
+    // TODO: Заглушка
     return true;
 }
 
@@ -37,9 +41,9 @@ bool udp_get_buffer(const buffer* x_buffer, buffer* udp_buffer)
 
 bool arp_send(buffer* tx_buffer, const buffer* rx_buffer, const mac_addrs* mac_addr, uint32_t ip_addr)
 {
-    if (tx_buffer->size_alloc < sizeof (arp_frame))
+    if (tx_buffer->size_alloc < sizeof(arp_frame))
         return false;
-    if (rx_buffer->size_used < sizeof (arp_frame))
+    if (rx_buffer->size_used < sizeof(arp_frame))
         return false;
     
     arp_frame* tx_arpf = (arp_frame*) tx_buffer->data;
@@ -66,8 +70,6 @@ bool arp_send(buffer* tx_buffer, const buffer* rx_buffer, const mac_addrs* mac_a
 
 bool arp_receive(const buffer* rx_buffer, const mac_addrs* maddrs, uint32_t ip_addr)
 {
-    if (!mac_receive(rx_buffer, maddrs))
-        return false;
     if (rx_buffer->size_used < sizeof(arp_frame))
         return false;
     arp_frame* arpf = (arp_frame*) rx_buffer->data;
@@ -88,7 +90,7 @@ bool mac_set_addr(buffer* x_buffer, const mac_addrs* addr)
 }
 
 
-bool mac_init_addr(mac_addrs* maddr, const uint8_t* src, const uint8_t* dst)
+void mac_init_addr(mac_addrs* maddr, const uint8_t* src, const uint8_t* dst)
 {
     memcpy(maddr->src, src, sizeof maddr->src);
     memcpy(maddr->dst, dst, sizeof maddr->dst);
@@ -103,6 +105,9 @@ bool mac_receive(const buffer* rx_buffer, const mac_addrs* maddr)
     mac_addrs* rx_madrs = (mac_addrs*) rx_buffer->data;
     if (memcmp(rx_madrs->dst, MAC_BROADCAST, sizeof rx_madrs->dst) == 0)
         return true;
+    if (memcmp(rx_madrs->dst, MAC_ZERO, sizeof rx_madrs->dst) == 0)
+        if (memcmp(rx_madrs->src, MAC_ZERO, sizeof rx_madrs->src) == 0)
+            return true;
     return memcmp(rx_madrs->dst, maddr->src, sizeof rx_madrs->dst) == 0;
 }
 
@@ -118,13 +123,12 @@ bool mac_send(buffer* x_buffer, const mac_addrs* addr)
 
 bool icmp_receive(const buffer* rx_buffer, const mac_addrs* maddr, uint32_t ip_addr)
 {
-    if (!mac_receive(rx_buffer, maddr))
-        return false;
     return ip_addr == ((ip_header*)(rx_buffer->data + sizeof(mac_addrs)))->dstadr;
 }
 
 
 bool icmp_send(buffer* tx_buffer, const buffer* rx_buffer)
 {
+    // TODO: Заглушка
     return true;
 }
