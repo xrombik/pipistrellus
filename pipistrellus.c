@@ -7,15 +7,12 @@ const uint8_t MAC_ZERO[]        = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 void udp_init_addr(udp_addr* udp_addr, const uint8_t* addr, const uint16_t port)
 {
-    // TODO: Заглушка
-    memcpy(&udp_addr->addr.dword, addr, sizeof udp_addr->addr.dword);
-    uint8_t* p = (uint8_t*) &port;
-    udp_addr->port.bytes[0] = p[1];
-    udp_addr->port.bytes[1] = p[0];
+    memcpy(&udp_addr->addr, addr, sizeof udp_addr->addr);
+    udp_addr->port = swap16(port);
 }
 
 
-bool udp_receive(const buffer* rx_buffer,  const udp_addr* src, const udp_addr* dst)
+bool udp_receive(const buffer* rx_buffer, const udp_addr* src, const udp_addr* dst)
 {
     // TODO: Заглушка
     return false;
@@ -49,19 +46,20 @@ bool arp_send(buffer* tx_buffer, const buffer* rx_buffer, const mac_addrs* mac_a
     arp_frame* tx_arpf = (arp_frame*) tx_buffer->data;
     arp_frame* rx_arpf = (arp_frame*) rx_buffer->data;
     
-    memcpy(&tx_arpf->maddrs.src, &mac_addr->src,        sizeof tx_arpf->maddrs.src);
-    memcpy(&tx_arpf->sndr_ip,    &ip_addr,              sizeof tx_arpf->sndr_ip);
-    memcpy(&tx_arpf->sndr_mac,   &mac_addr->src,        sizeof tx_arpf->sndr_mac);
-    memcpy(&tx_arpf->maddrs.dst, &rx_arpf->maddrs.src,  sizeof tx_arpf->maddrs.dst);
-    memcpy(&tx_arpf->trgt_ip,    &rx_arpf->sndr_ip,     sizeof tx_arpf->trgt_ip);
-    memcpy(&tx_arpf->trgt_mac,   &rx_arpf->sndr_mac,    sizeof tx_arpf->trgt_mac);
+    memcpy(tx_arpf->maddrs.src, mac_addr->src,       sizeof tx_arpf->maddrs.src);
+    memcpy(tx_arpf->sndr_mac,   mac_addr->src,       sizeof tx_arpf->sndr_mac);
+    memcpy(tx_arpf->maddrs.dst, rx_arpf->maddrs.src, sizeof tx_arpf->maddrs.dst);
+    memcpy(tx_arpf->trgt_mac,   rx_arpf->sndr_mac,   sizeof tx_arpf->trgt_mac);
 
-    tx_arpf->opcode = ARP_REP;
+    tx_arpf->sndr_ip     = ip_addr;
+    tx_arpf->trgt_ip     = rx_arpf->sndr_ip;
+    tx_arpf->opcode      = ARP_REP;
     tx_arpf->maddrs.type = rx_arpf->maddrs.type;
-    tx_arpf->hw_type = rx_arpf->hw_type;
-    tx_arpf->hw_size = rx_arpf->hw_size;
-    tx_arpf->prot_size = rx_arpf->prot_size;
-    tx_arpf->prot_type = rx_arpf->prot_type;
+    tx_arpf->hw_type     = rx_arpf->hw_type;
+    tx_arpf->hw_size     = rx_arpf->hw_size;
+    tx_arpf->prot_size   = rx_arpf->prot_size;
+    tx_arpf->prot_type   = rx_arpf->prot_type;
+    
     tx_buffer->size_used = sizeof *tx_arpf;
     
     return true;
@@ -73,9 +71,9 @@ bool arp_receive(const buffer* rx_buffer, const mac_addrs* maddrs, uint32_t ip_a
     if (rx_buffer->size_used < sizeof(arp_frame))
         return false;
     arp_frame* arpf = (arp_frame*) rx_buffer->data;
-    if (arpf->opcode != ARP_ASQ)
-        return false;
     if (arpf->maddrs.type != ETH_TYPE_ARP)
+        return false;
+    if (arpf->opcode != ARP_ASQ)
         return false;
     return arpf->trgt_ip == ip_addr;
 }
@@ -121,14 +119,50 @@ bool mac_send(buffer* x_buffer, const mac_addrs* addr)
 }
 
 
-bool icmp_receive(const buffer* rx_buffer, const mac_addrs* maddr, uint32_t ip_addr)
+bool icmp_receive(const buffer* rx_buffer, uint32_t ip_addr)
 {
-    return ip_addr == ((ip_header*)(rx_buffer->data + sizeof(mac_addrs)))->dstadr;
+    if (rx_buffer->size_used < sizeof (icmp_frame))
+        return false;
+    icmp_frame* icmpf = (icmp_frame*) rx_buffer->data;
+    if (icmpf->maddrs.type != ETH_TYPE_IPV4)
+        return false;
+    if (icmpf->proto != ICMP_PROTO)
+        return false;
+    if (icmpf->opcode != ICMP_TYPE_ASQ)
+        return false;
+    return icmpf->trgt_ip == ip_addr;
 }
 
 
 bool icmp_send(buffer* tx_buffer, const buffer* rx_buffer)
 {
-    // TODO: Заглушка
+    if (rx_buffer->size_used < sizeof (icmp_frame))
+        return false;
+    if (tx_buffer->size_alloc < rx_buffer->size_used)
+        return false;
+
+    icmp_frame* tx_icmpf = (icmp_frame*) tx_buffer->data;
+    icmp_frame* rx_icmpf = (icmp_frame*) rx_buffer->data;
+
+    memcpy(tx_icmpf->maddrs.dst, rx_icmpf->maddrs.src, sizeof tx_icmpf->maddrs.dst);
+    memcpy(tx_icmpf->maddrs.src, rx_icmpf->maddrs.dst, sizeof tx_icmpf->maddrs.src);
+    tx_icmpf->maddrs.type = rx_icmpf->maddrs.type;
+    tx_icmpf->verlen      = rx_icmpf->verlen;
+    tx_icmpf->totlen      = rx_icmpf->totlen;
+    tx_icmpf->flags       = ICMP_FLAGS_DF;
+    tx_icmpf->hdr_csum    = 0U;
+    tx_icmpf->csum        = 0U;
+    tx_icmpf->ttl         = rx_icmpf->ttl;
+    tx_icmpf->proto       = rx_icmpf->proto;
+    tx_icmpf->sndr_ip     = rx_icmpf->trgt_ip;
+    tx_icmpf->trgt_ip     = rx_icmpf->sndr_ip;
+    tx_icmpf->opcode      = ICMP_TYPE_REP;
+    tx_icmpf->code        = rx_icmpf->code;
+    tx_icmpf->be          = rx_icmpf->be;
+    tx_icmpf->le          = rx_icmpf->le;
+    memcpy(tx_icmpf->time, rx_icmpf->time, sizeof tx_icmpf->time);
+    memcpy(tx_buffer->data + sizeof(*tx_icmpf), rx_buffer->data + sizeof(*rx_icmpf), rx_buffer->size_used - sizeof(*rx_icmpf));
+    tx_buffer->size_used = rx_buffer->size_used;
+    
     return true;
 }

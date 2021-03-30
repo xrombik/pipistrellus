@@ -3,36 +3,29 @@
 #include "pipistrellus.h"
 #include "main.h"
 
+#include "test_data.c"
+
 /** \file */
 
 #define BUFFER_SIZE 1500
 
-extern const uint8_t arp_asq_0[60];
-extern const uint8_t arp_rep_0[42];
-
-
 extern uint8_t MAC_BROADCAST[6];
+const uint8_t  NULL_ADDR[] = {0x00, 0x00, 0x00, 0x00};
 
 /* mac-адрес этого узла */
 const uint8_t MAC_SRC[] = {0x70, 0x4d, 0x7b, 0x65, 0x2a, 0xd0};
 
-/* ip-адрес этого узла */
-const uint8_t IP_ADDR[] = {172, 16, 2, 10};
-const uint16_t IP_PORT = 50090;
+const uint8_t  IP_MASK[] = {255, 255, 255,   0};  /**< маска подсети */
+const uint8_t  IP_ADDR[] = {172,  16,   1,  10};  /**< ip-адрес этого узла */
+const uint16_t IP_PORT   = 50090;                 /**< порт назначения */
 
-/* */
-const uint8_t NULL_ADDR[] = {0x00, 0x00, 0x00, 0x00};
+const void* test_asq_data  [TEST_CASES_COUNT];
+uint16_t    test_asq_len   [TEST_CASES_COUNT];
+uint16_t    test_case_i  = 0;
 
-
-#define TEST_CASES_COUNT  1
-const void* test_cases_data[TEST_CASES_COUNT];
-uint32_t test_cases_len[TEST_CASES_COUNT];
-uint32_t test_case_i = 0;
-
-const void* test_repl_data[TEST_CASES_COUNT];
-uint32_t test_repl_len[TEST_CASES_COUNT];
-uint32_t test_repl_i = 0;
-
+const void* test_repl_data [TEST_CASES_COUNT];
+uint16_t    test_repl_len  [TEST_CASES_COUNT];
+uint16_t    test_repl_i  = 0;
 
 int main(int argc, char** argv)
 {
@@ -61,15 +54,21 @@ int main(int argc, char** argv)
   udp_addr trgt_addr;
   udp_init_addr(&trgt_addr, NULL_ADDR, 0);
 
+  const uint32_t* netmask = (const uint32_t*) IP_MASK;
+
   /* Заполнение тестовых случаев */
-  test_cases_data[0] = arp_asq_0;
-  test_cases_len[0] = sizeof arp_asq_0;
+  test_asq_data[0]  = arp_asq_0;
+  test_asq_len[0]   = sizeof arp_asq_0;
   test_repl_data[0] = arp_rep_0;
-  test_repl_len[0] = sizeof arp_rep_0;
-
-
+  test_repl_len[0]  = sizeof arp_rep_0;
+  
+  test_asq_data[1]  = icmp_asq_0;
+  test_asq_len[1]   = sizeof icmp_asq_0;
+  test_repl_data[1] = icmp_rep_0;
+  test_repl_len[1]  = sizeof icmp_rep_0;
+  
   /* Здесь оборудование должно быть готово для приёма и передачи данных */
-  for (uint32_t i = 0U; i < sizeof test_cases_data / sizeof test_cases_data[0]; i ++)
+  for (test_case_i = 1U; test_case_i < sizeof test_asq_data / sizeof test_asq_data[0]; test_case_i ++)
   {
     /* Получить пакет "с провода" */
     rx_buffer.size_used = hw_receive(rx_buffer.data, rx_buffer.size_alloc);
@@ -81,15 +80,15 @@ int main(int argc, char** argv)
        тип, IP-заголовок и данные, а rx_buffer.size длину eth-фрейма */
     
     /* Здесь нетопырь обработает запросы ICMP */
-    if (icmp_receive(&rx_buffer, &maddr, self_addr.addr.dword))
+    if (icmp_receive(&rx_buffer, self_addr.addr))
     {
       icmp_send(&tx_buffer, &rx_buffer);
     }
 
     /* Здесь нетопырь обработает запросы ARP */
-    else if (arp_receive(&rx_buffer, &maddr, self_addr.addr.dword))
+    else if (arp_receive(&rx_buffer, &maddr, self_addr.addr))
     {
-      arp_send(&tx_buffer, &rx_buffer, &maddr, self_addr.addr.dword);
+      arp_send(&tx_buffer, &rx_buffer, &maddr, self_addr.addr);
     }
     
     /* Здесь нетопырь обработает запросы UDP */
@@ -113,33 +112,39 @@ int main(int argc, char** argv)
         mac_set_addr(&tx_buffer, &maddr);
       }
     }
+    else
+    {
+      tx_buffer.size_used = 0;
+    }
     hw_transmit(tx_buffer.data, tx_buffer.size_used);
-    test_case_i ++;
   }
   return EXIT_SUCCESS;
 }
 
 
-uint32_t hw_receive(uint8_t* data, uint32_t size)
+uint16_t hw_receive(uint8_t* data, uint16_t size)
 {
   /* Здесь выполняют работу с оборудованием, для получения данных "с провода".
      Данные из оборудования заносят в buffer */
-  memcpy(data, test_cases_data[test_case_i], test_cases_len[test_case_i]);
-  return test_cases_len[test_case_i];
+  memcpy(data, test_asq_data[test_case_i], test_asq_len[test_case_i]);
+  return test_asq_len[test_case_i];
 }
 
 
-uint32_t hw_transmit(uint8_t* data, uint32_t size)
+uint16_t hw_transmit(uint8_t* data, uint16_t size)
 {
   /* Здесь выполняют работу с оборудованием, для
      выставления данных "на провод". Данные из
      data передают в оборудование */
+  printf("len ref:%u fact:%u\n", test_repl_len[test_case_i], size);
   if (size != test_repl_len[test_case_i])
     exit(EXIT_FAILURE);
-  for (uint32_t i = 0; i < size; i ++)
+  for (uint16_t i = 0; i < size; i ++)
   {
-    printf("[%02u] %02x : %02x\n", i, arp_rep_0[i], data[i]);
-    if (((uint8_t*)test_repl_data[test_case_i])[i] != data[i])
+    uint8_t byte_ref = ((uint8_t*)test_repl_data[test_case_i])[i];
+    uint8_t byte_fact = data[i];
+    printf("[%02u] %02x : %02x\n", i, byte_ref, byte_fact);
+    if (byte_ref != byte_fact)
       exit(EXIT_FAILURE);
   }
   return size;

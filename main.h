@@ -11,8 +11,8 @@
 
 /** Заполняет buffer данными "с провода".
 Определяется пользователем и используемым оборудованием */
-uint32_t hw_receive(uint8_t* data, uint32_t size);
+uint16_t hw_receive(uint8_t* data, uint16_t size);
 
 /** Передаёт содержимое buffer оборудованию "на провод".
 Определяется пользователем и используемым оборудованием */
-uint32_t hw_transmit(uint8_t* data, uint32_t size);
+uint16_t hw_transmit(uint8_t* data, uint16_t size);
