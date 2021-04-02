@@ -36,6 +36,7 @@
         "thread": "c",
         "tuple": "c",
         "typeinfo": "c",
-        "condition_variable": "c"
+        "condition_variable": "c",
+        "string": "c"
     }
 }

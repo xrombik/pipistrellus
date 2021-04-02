@@ -26,12 +26,16 @@ bool udp_send(buffer* tx_buffer, const udp_addr* src, const udp_addr* dst)
 }
 
 
-bool udp_get_buffer(const buffer* x_buffer, buffer* udp_buffer)
+bool udp_get_data(const buffer* x_buffer, buffer* udp_buffer)
 {
-    // TODO: Заглушка
-    udp_buffer->data = x_buffer->data;
-    udp_buffer->size_alloc = x_buffer->size_alloc;
-    udp_buffer->size_used = x_buffer->size_used;
+    udp_frame* udpf = (udp_frame*) x_buffer->data;
+    if (udpf->proto != UDP_PROTO)
+        return false;
+    uint16_t len = udpf->lendg - 8;
+    if (len > udp_buffer->size_alloc)
+        return false;
+    udp_buffer->data = x_buffer->data + sizeof(udp_frame);
+    udp_buffer->size_used = len;
     return true;
 }
 

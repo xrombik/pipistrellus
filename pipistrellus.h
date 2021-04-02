@@ -15,34 +15,34 @@
 #define ICMP_PROTO                    1    /**< Значение поля icmp_frame::proto */
 #define ICMP_TYPE_ASQ                 8    /**< Значение поля icmp_frame::type - запрос */
 #define ICMP_TYPE_REP                 0    /**< Значение поля icmp_frame::type - ответ */
-#define ICMP_FLAGS_DF  swap16   (0x4000)   /**< Значение поля icmp_frame::flags - ответ */    
+#define ICMP_FLAGS_DF  swap16   (0x4000)   /**< Значение поля icmp_frame::flags - ответ */  
+#define UDP_PROTO                    17    /**< Значение поля udp_frame::proto */
 
 #pragma pack(push, 1)
 
-/** Буфер для хранения данных */
+/** Буфер для размещения внутри области */
 typedef struct
 {
-  uint16_t size_alloc;  /**< Размер области в байтах выделенный */
-  uint16_t size_used;   /**< Размер области в байтах занятый, т.е.
-                             область из которой можно читать */
-  uint8_t* data;        /**< Указатель на область памяти */
+    uint16_t size_alloc;  /**< Размер области в байтах выделенный */
+    uint16_t size_used;   /**< Размер области в байтах занятый */
+    uint8_t* data;        /**< Указатель на начало занимаемой области */
 } buffer;
 
 
 /** mac-адреса */
 typedef struct
 {
-  uint8_t dst[6]; /**< mac-адрес назначения (кому) */
-  uint8_t src[6]; /**< mac-адрес источника (от кого) */
-  uint16_t type;  /**< тип протокола */
+    uint8_t dst[6]; /**< mac-адрес получателя */
+    uint8_t src[6]; /**< mac-адрес отправителя */
+    uint16_t type;  /**< тип протокола */
 } mac_addrs;
 
 
 /** udp-адрес */
 typedef struct
 {
-  uint16_t port;
-  uint32_t addr;
+    uint16_t port;
+    uint32_t addr;
 } udp_addr;
 
 
@@ -53,7 +53,7 @@ typedef struct
   uint8_t   verlen;    /**< версия и длина */
   uint8_t   dsc_ecn;   /**< Differentiated Services Codepoint: Default (0)
                             Explicit Congestion Notification: Not ECN-Capable Transport (0) */
-  uint16_t  totlen;    /**< Total Length. Длина icmp-данных  + sizeof(icmp_frame) */
+  uint16_t  totlen;    /**< Total Length. Длина icmp-данных + sizeof(icmp_frame) */
   uint16_t  id;        /**< Identification, случайное значение? */
   uint16_t  flags;     /**< Флаги, все установлены в 0 */
   uint8_t   ttl;       /**< Время жизни */
@@ -64,10 +64,10 @@ typedef struct
   uint8_t   opcode;    /**< тип icmp-запроса */
   uint8_t   code;      /**< Code, всегда 0 */
   uint16_t  csum;      /**< Контрольная сумма */
-  uint16_t  be;        /**< Identifier BE. В ответе повторяет значение из запроса */
-  uint16_t  le;        /**< Identifier LE. В ответе повторяет значение из запроса */
-  uint8_t   time[8];   /**< Отметка времени. В ответе повторяет значение из запроса */
-                       /**< Здесь начинаются icmp-данные. В ответе повторяет значение из запроса */
+  uint16_t  be;        /**< Identifier BE. В ответе повторяют значение из запроса */
+  uint16_t  le;        /**< Identifier LE. В ответе повторяют значение из запроса */
+  uint8_t   time[8];   /**< Отметка времени. В ответе повторяют значение из запроса */
+                       /**< Здесь начинаются icmp-данные. В ответе повторяют значение из запроса */
 } icmp_frame;
 
 
@@ -86,24 +86,27 @@ typedef struct
   uint32_t  trgt_ip;      /**< ip-адрес получателя */
 } arp_frame;
 
-/** Формат ip-заголовка */
+
+/** Формат udp-заголовка */
 typedef struct
 {
+    mac_addrs   maddrs;    /**< mac-адреса получателя и отправителя */
 	uint8_t     verlen;
 	uint8_t     tos;
 	uint16_t    length;
 	uint16_t    id;
 	uint16_t    offset;
 	uint8_t     ttl;       /**< ip поле, время жизни */
-	uint8_t     protocol;  /**< ip поле, код протокола */
+	uint8_t     proto;     /**< ip поле, код протокола */
 	uint16_t    xsum;      /**< ip поле, контрольная сумма */
 	uint32_t    sndr_ip;   /**< ip поле, ip-адрес отправителя */
-	uint32_t    trgt_ip;	 /**< ip поле, ip-адрес получателя */
+	uint32_t    trgt_ip;   /**< ip поле, ip-адрес получателя */
 	uint16_t    sndr_port; /**< udp поле, ip-порт отправителя */
 	uint16_t    trgt_port; /**< udp поле, ip-порт получателя */
 	uint16_t    lendg;	   /**< udp поле, длинна udp-датаграммы */
 	uint16_t    xsumd;	   /**< udp поле, котрольная сумма udp-датаграммы */
-} ip_header;
+                           /**< Здесь начинается пользовательская датаграмма */
+} udp_frame;
 
 
 /** Псевдо ip-заголовок для подсчёта контрольной суммы */
@@ -112,7 +115,7 @@ typedef struct
 	udp_addr source_address;
 	udp_addr dest_address;
 	uint8_t place_holder;
-	uint8_t protocol;
+	uint8_t proto;
 	uint16_t length;
 } ip_pseudoheader;
 
@@ -158,7 +161,7 @@ bool icmp_send(buffer* tx_buffer, const buffer* rx_buffer);
  \param[in] rx_buffer Буфер в котором содержится arp-запрос
  \param[in] maddr mac-адреса
  \param[in] ip_addr ip-адрес текущего узла 
- \return true если arp-запрос адресован текущему узлу и false если иначе */
+ \return true - если arp-запрос адресован текущему узлу и false - если иначе */
 bool arp_receive(const buffer* rx_buffer, const mac_addrs* maddr, uint32_t ip_addr);
 
 
@@ -170,8 +173,11 @@ bool arp_send(buffer* tx_buffer, const buffer* rx_buffer, const mac_addrs* mac_a
 void udp_init_addr(udp_addr* udp_addr, const uint8_t* addr, const uint16_t port);
 
 
-/** */
-bool udp_get_buffer(const buffer* x_buffer, buffer* udp_buffer);
+/** Размещает буфер содержащий udp-датаграмму
+ \param[in] x_buffer Буфер в котором содержится пакет с udp-датаграммой
+ \param[out] udp_buffer Размещаемый udp-буфер
+ \return true - если буфер размещён, false - если иначе */
+bool udp_get_data(const buffer* x_buffer, buffer* udp_buffer);
 
 
 /** */
