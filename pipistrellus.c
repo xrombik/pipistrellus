@@ -1,8 +1,34 @@
 #include "pipistrellus.h"
 
 
-const uint8_t MAC_BROADCAST[]   = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-const uint8_t MAC_ZERO[]        = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+uint8_t MAC_BROADCAST[]   = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+const uint8_t MAC_ZERO[]  = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+extern uint32_t eth_printf(const char* fmt, ...);
+
+
+uint32_t get_checksum(const void *data, uint32_t count)
+{
+    /* Compute Internet Checksum for "count" bytes beginning at location "addr"  */
+    uint32_t sum = 0;
+
+    while (count > 1)
+    {
+        /*  This is the inner loop */
+        sum += *(uint16_t*) data ++;
+        count -= 2;
+    }
+
+    /*  Add left-over byte, if any */
+    if (count > 0)
+        sum += * (uint8_t*) data;
+
+    /*  Fold 32-bit sum to 16 bits */
+    while (sum >> 16)
+       sum = (sum & 0xffff) + (sum >> 16);
+
+   return ~sum;
+}
 
 
 void udp_init_addr(udp_addr* udp_addr, const uint8_t* addr, const uint16_t port)
@@ -44,6 +70,7 @@ bool arp_send(buffer* tx_buffer, const buffer* rx_buffer, const mac_addrs* mac_a
 {
     if (tx_buffer->size_alloc < sizeof(arp_frame))
         return false;
+    
     if (rx_buffer->size_used < sizeof(arp_frame))
         return false;
     
@@ -54,11 +81,11 @@ bool arp_send(buffer* tx_buffer, const buffer* rx_buffer, const mac_addrs* mac_a
     memcpy(tx_arpf->sndr_mac,   mac_addr->src,       sizeof tx_arpf->sndr_mac);
     memcpy(tx_arpf->maddrs.dst, rx_arpf->maddrs.src, sizeof tx_arpf->maddrs.dst);
     memcpy(tx_arpf->trgt_mac,   rx_arpf->sndr_mac,   sizeof tx_arpf->trgt_mac);
-
+    
+    tx_arpf->maddrs.type = rx_arpf->maddrs.type;
     tx_arpf->sndr_ip     = ip_addr;
     tx_arpf->trgt_ip     = rx_arpf->sndr_ip;
     tx_arpf->opcode      = ARP_REP;
-    tx_arpf->maddrs.type = rx_arpf->maddrs.type;
     tx_arpf->hw_type     = rx_arpf->hw_type;
     tx_arpf->hw_size     = rx_arpf->hw_size;
     tx_arpf->prot_size   = rx_arpf->prot_size;
@@ -151,9 +178,11 @@ bool icmp_send(buffer* tx_buffer, const buffer* rx_buffer)
     memcpy(tx_icmpf->maddrs.dst, rx_icmpf->maddrs.src, sizeof tx_icmpf->maddrs.dst);
     memcpy(tx_icmpf->maddrs.src, rx_icmpf->maddrs.dst, sizeof tx_icmpf->maddrs.src);
     tx_icmpf->maddrs.type = rx_icmpf->maddrs.type;
+    tx_icmpf->dsc_ecn     = rx_icmpf->dsc_ecn; 
     tx_icmpf->verlen      = rx_icmpf->verlen;
     tx_icmpf->totlen      = rx_icmpf->totlen;
-    tx_icmpf->flags       = ICMP_FLAGS_DF;
+    tx_icmpf->id          = swap16(swap16(rx_icmpf->id) + 1U);
+    tx_icmpf->flags       = 0U;
     tx_icmpf->hdr_csum    = 0U;
     tx_icmpf->csum        = 0U;
     tx_icmpf->ttl         = rx_icmpf->ttl;
@@ -164,9 +193,14 @@ bool icmp_send(buffer* tx_buffer, const buffer* rx_buffer)
     tx_icmpf->code        = rx_icmpf->code;
     tx_icmpf->be          = rx_icmpf->be;
     tx_icmpf->le          = rx_icmpf->le;
+    
     memcpy(tx_icmpf->time, rx_icmpf->time, sizeof tx_icmpf->time);
     memcpy(tx_buffer->data + sizeof(*tx_icmpf), rx_buffer->data + sizeof(*rx_icmpf), rx_buffer->size_used - sizeof(*rx_icmpf));
+    
     tx_buffer->size_used = rx_buffer->size_used;
+    // TODO: Разобраться почему нужно "- 4"
+    tx_icmpf->csum       = get_checksum(&tx_icmpf->opcode, tx_buffer->size_used - (uint32_t)(&tx_icmpf->opcode - (uint8_t*)tx_icmpf) - 4);
+    tx_icmpf->hdr_csum   = get_checksum(&tx_icmpf->verlen, (uint32_t) ((uint8_t*) &tx_icmpf->opcode - (uint8_t*) &tx_icmpf->verlen));
     
     return true;
 }

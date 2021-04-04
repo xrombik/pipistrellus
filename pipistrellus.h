@@ -15,7 +15,7 @@
 #define ICMP_PROTO                    1    /**< Значение поля icmp_frame::proto */
 #define ICMP_TYPE_ASQ                 8    /**< Значение поля icmp_frame::type - запрос */
 #define ICMP_TYPE_REP                 0    /**< Значение поля icmp_frame::type - ответ */
-#define ICMP_FLAGS_DF  swap16   (0x4000)   /**< Значение поля icmp_frame::flags - ответ */  
+#define ICMP_FLAGS_DF   swap16  (0x4000)   /**< Значение поля icmp_frame::flags - ответ */  
 #define UDP_PROTO                    17    /**< Значение поля udp_frame::proto */
 
 #pragma pack(push, 1)
@@ -121,6 +121,9 @@ typedef struct
 
 #pragma pack(pop)
 
+/** */
+uint32_t get_checksum(const void *data, uint32_t len);
+
 
 /** Заполняет структуру 
  \param[out] maddr Заполняемая структура
@@ -132,14 +135,14 @@ void mac_init_addr(mac_addrs* maddrs, const uint8_t* src, const uint8_t* dst);
 /** Заполняет поля mac-адресов в буфере
  \param[out] x_buffer Буфер для размещения mac-адресов
  \param[in] maddrs mac-адреса
- \return true если адрес размещён, false - если не размещён (недостаточно места) */
+ \return true - если адрес размещён, false - если не размещён (недостаточно места) */
 bool mac_set_addr(buffer* x_buffer, const mac_addrs* maddrs);
 
 
 /** Проверяет, что пакет адресован текущему узлу на mac-уровне
  \param[in] buffer Буфер содержащий данные приятые "с провода"
  \param[in] maddrs mac-адрес текущего узла 
- \return true если пакет адресован текущему узлу и false если иначе */
+ \return true - если пакет адресован текущему узлу и false - если иначе */
 bool mac_receive(const buffer* rx_buffer, const mac_addrs* maddrs);
 
 
