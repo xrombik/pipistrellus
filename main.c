@@ -68,7 +68,7 @@ int main(int argc, char** argv)
     test_repl_len[1]  = sizeof icmp_rep_0;
   
     /* Здесь оборудование должно быть готово для приёма и передачи данных */
-    for (test_case_i = 1U; test_case_i < sizeof test_asq_data / sizeof test_asq_data[0]; test_case_i ++)
+    for (test_case_i = 0U; test_case_i < sizeof test_asq_data / sizeof test_asq_data[0]; test_case_i ++)
     {
         /* Получить пакет "с провода" */
         rx_buffer.size_used = hw_receive(rx_buffer.data, rx_buffer.size_alloc);
