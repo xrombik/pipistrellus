@@ -40,8 +40,8 @@
 # Использование
 
 Пользователь добавляет в свой проект два файла: 
- - pipistrellus.h
- - pipistrellus.с
+ - [pipistrellus.h](pipistrellus.h)
+ - [pipistrellus.с](pipistrellus.с)
 
 # Пример программы
 
