@@ -40,9 +40,11 @@
 # Использование
 
 Пользователь добавляет в свой проект два файла: 
- - [pipistrellus.h](pipistrellus.h)
- - [pipistrellus.с](pipistrellus.с)
+
+- [pipistrellus.с](pipistrellus.с)
+- [pipistrellus.h](pipistrellus.h)
+ 
 
 # Пример программы
 
-[показать](main.c)
+[main.c](main.c)
