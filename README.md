@@ -41,7 +41,7 @@
 
 Пользователь добавляет в свой проект два файла: 
 
-- [pipistrellus.с](https://github.com/xrombik/pipistrellus/blob/main/pipistrellus.c)
+- [pipistrellus.с](pipistrellus.c)
 - [pipistrellus.h](pipistrellus.h)
  
 
