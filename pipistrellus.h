@@ -12,28 +12,37 @@
 #define ARP_ASQ         swap16  (  0x01)   /**< Значение поля arp_frame::opcode - запрос */
 #define ARP_REP         swap16  (  0x02)   /**< Значение поля arp_frame::opcode - ответ */
 #define ICMP_VERLEN                0x45    /**< Версия и длина */
-#define ICMP_PROTO                    1    /**< Значение поля icmp_frame::proto */
-#define ICMP_TYPE_ASQ                 8    /**< Значение поля icmp_frame::type - запрос */
-#define ICMP_TYPE_REP                 0    /**< Значение поля icmp_frame::type - ответ */
-#define ICMP_FLAGS_DF   swap16  (0x4000)   /**< Значение поля icmp_frame::flags - ответ */  
-#define UDP_PROTO                    17    /**< Значение поля udp_frame::proto */
+#define ICMP_PROTO                   1U    /**< Значение поля icmp_frame::proto */
+#define ICMP_TYPE_ASQ                8U    /**< Значение поля icmp_frame::opcode - запрос */
+#define ICMP_TYPE_REP                0U    /**< Значение поля icmp_frame::opcode - ответ */
+#define ICMP_FLAGS_DF   swap16  (0x4000)   /**< Значение поля icmp_frame::flags - ответ */    
+#define UDP_PROTO                   17U    /**< Значение поля udp_frame::proto */
+#define MTU_SIZE                  1500U    /**< */
 
 #pragma pack(push, 1)
 
-/** Буфер для размещения внутри области */
+/** Буфер для выделения области памяти */
 typedef struct
 {
-    uint16_t size_alloc;  /**< Размер области в байтах выделенный */
-    uint16_t size_used;   /**< Размер области в байтах занятый */
-    uint8_t* data;        /**< Указатель на начало занимаемой области */
+    uint32_t size_alloc;     /**< Размер области в байтах выделенный */
+    uint32_t size_used;      /**< Размер области в байтах занятый */
+    uint8_t  data[MTU_SIZE]; /**< */
 } buffer;
+
+
+/** Буфер для размещения внутри области памяти */
+typedef struct
+{
+    uint32_t size_used;
+    uint8_t* data;
+} udp_buffer;
 
 
 /** mac-адреса */
 typedef struct
 {
-    uint8_t dst[6]; /**< mac-адрес получателя */
-    uint8_t src[6]; /**< mac-адрес отправителя */
+    uint8_t trgt[6U]; /**< mac-адрес получателя */
+    uint8_t sndr[6U]; /**< mac-адрес отправителя */
     uint16_t type;  /**< тип протокола */
 } mac_addrs;
 
@@ -53,21 +62,21 @@ typedef struct
   uint8_t   verlen;    /**< версия и длина */
   uint8_t   dsc_ecn;   /**< Differentiated Services Codepoint: Default (0)
                             Explicit Congestion Notification: Not ECN-Capable Transport (0) */
-  uint16_t  totlen;    /**< Total Length. Длина icmp-данных + sizeof(icmp_frame) */
-  uint16_t  id;        /**< Identification, случайное значение? */
-  uint16_t  flags;     /**< Флаги, все установлены в 0 */
-  uint8_t   ttl;       /**< Время жизни */
+  uint16_t  totlen;    /**< Total Length. Длина icmp-данных  + sizeof(icmp_frame) */
+  uint16_t  id;        /**< Identification, ответчающий возвращает это значение увеличенным на 1 */
+  uint16_t  flags;     /**< Флаги, в ответе все установлены в 0 */
+  uint8_t   ttl;       /**< Время жизни пакета */
   uint8_t   proto;     /**< Протокол */
   uint16_t  hdr_csum;  /**< Header checksum */
   uint32_t  sndr_ip;   /**< ip-адрес отправителя */
   uint32_t  trgt_ip;   /**< ip-адрес получателя */
-  uint8_t   opcode;    /**< тип icmp-запроса */
+  uint8_t   opcode;    /**< Тип icmp-пакета: запрос или ответ */
   uint8_t   code;      /**< Code, всегда 0 */
   uint16_t  csum;      /**< Контрольная сумма */
-  uint16_t  be;        /**< Identifier BE. В ответе повторяют значение из запроса */
-  uint16_t  le;        /**< Identifier LE. В ответе повторяют значение из запроса */
-  uint8_t   time[8];   /**< Отметка времени. В ответе повторяют значение из запроса */
-                       /**< Здесь начинаются icmp-данные. В ответе повторяют значение из запроса */
+  uint16_t  be;        /**< Identifier BE. В ответе повторяет значение из запроса */
+  uint16_t  le;        /**< Identifier LE. В ответе повторяет значение из запроса */
+  uint8_t   time[8U];  /**< Отметка времени. В ответе повторяет значение из запроса */
+                       /**< Здесь начинаются icmp-данные. В ответе повторяет значение из запроса */
 } icmp_frame;
 
 
@@ -80,9 +89,9 @@ typedef struct
   uint8_t   hw_size;      /**<  */
   uint8_t   prot_size;    /**<  */
   uint16_t  opcode;       /**< код операции, одно из ARP_ASQ, ARP_REP */
-  uint8_t   sndr_mac[6];  /**< mac-адрес отправителя */
+  uint8_t   sndr_mac[6U]; /**< mac-адрес отправителя */
   uint32_t  sndr_ip;      /**< ip-адрес отправителя */
-  uint8_t   trgt_mac[6];  /**< mac-адрес получателя */
+  uint8_t   trgt_mac[6U]; /**< mac-адрес получателя */
   uint32_t  trgt_ip;      /**< ip-адрес получателя */
 } arp_frame;
 
@@ -90,22 +99,22 @@ typedef struct
 /** Формат udp-заголовка */
 typedef struct
 {
-    mac_addrs   maddrs;    /**< mac-адреса получателя и отправителя */
-	uint8_t     verlen;
-	uint8_t     tos;
-	uint16_t    length;
-	uint16_t    id;
-	uint16_t    offset;
-	uint8_t     ttl;       /**< ip поле, время жизни */
-	uint8_t     proto;     /**< ip поле, код протокола */
-	uint16_t    xsum;      /**< ip поле, контрольная сумма */
-	uint32_t    sndr_ip;   /**< ip поле, ip-адрес отправителя */
-	uint32_t    trgt_ip;   /**< ip поле, ip-адрес получателя */
-	uint16_t    sndr_port; /**< udp поле, ip-порт отправителя */
-	uint16_t    trgt_port; /**< udp поле, ip-порт получателя */
-	uint16_t    lendg;	   /**< udp поле, длинна udp-датаграммы */
-	uint16_t    xsumd;	   /**< udp поле, котрольная сумма udp-датаграммы */
-                           /**< Здесь начинается пользовательская датаграмма */
+    mac_addrs maddrs;    /**< mac-адреса получателя и отправителя */
+    uint8_t   verlen;
+    uint8_t   tos;
+    uint16_t  length;
+    uint16_t  id;
+    uint16_t  offset;
+    uint8_t   ttl;       /**< ip поле, время жизни */
+    uint8_t   proto;     /**< ip поле, код протокола */
+    uint16_t  xsum;      /**< ip поле, контрольная сумма */
+    uint32_t  sndr_addr; /**< ip поле, ip-адрес отправителя */
+    uint32_t  trgt_addr; /**< ip поле, ip-адрес получателя */
+    uint16_t  sndr_port; /**< udp поле, ip-порт отправителя */
+    uint16_t  trgt_port; /**< udp поле, ip-порт получателя */
+    uint16_t  lendg;	 /**< udp поле, длинна udp-датаграммы */
+    uint16_t  xsumd;	 /**< udp поле, котрольная сумма udp-датаграммы */
+			 /**< Здесь начинается пользовательская датаграмма */
 } udp_frame;
 
 
@@ -122,14 +131,17 @@ typedef struct
 #pragma pack(pop)
 
 /** */
-uint32_t get_checksum(const void *data, uint32_t len);
+void buffer_init (buffer* buf);
+
+/** */
+uint16_t get_checksum(const void *data, uint32_t len);
 
 
 /** Заполняет структуру 
  \param[out] maddr Заполняемая структура
- \param[in] src mac-адрес отправителя
- \param[in] dst mac-адрес получателя */
-void mac_init_addr(mac_addrs* maddrs, const uint8_t* src, const uint8_t* dst);
+ \param[in] sndr mac-адрес отправителя
+ \param[in] trgt mac-адрес получателя */
+void mac_init_addr(mac_addrs* maddrs, const uint8_t* sndr, const uint8_t* trgt);
 
 
 /** Заполняет поля mac-адресов в буфере
@@ -169,7 +181,7 @@ bool arp_receive(const buffer* rx_buffer, const mac_addrs* maddr, uint32_t ip_ad
 
 
 /** */
-bool arp_send(buffer* tx_buffer, const buffer* rx_buffer, const mac_addrs* mac_addr, uint32_t ip_addr);
+bool arp_send(buffer* tx_buffer, const buffer* rx_buffer, const mac_addrs* mac_addr, const uint32_t ip_addr);
 
 
 /** */
@@ -178,9 +190,9 @@ void udp_init_addr(udp_addr* udp_addr, const uint8_t* addr, const uint16_t port)
 
 /** Размещает буфер содержащий udp-датаграмму
  \param[in] x_buffer Буфер в котором содержится пакет с udp-датаграммой
- \param[out] udp_buffer Размещаемый udp-буфер
+ \param[out] udpb Размещаемый udp-буфер
  \return true - если буфер размещён, false - если иначе */
-bool udp_get_data(const buffer* x_buffer, buffer* udp_buffer);
+bool udp_get_data(const buffer* x_buffer, udp_buffer* udpb);
 
 
 /** */
@@ -200,7 +212,7 @@ bool udp_cmp_dst(const buffer* x_buffer, const udp_addr* addr);
 
 
 /** */
-bool udp_receive(const buffer* x_buffer, const udp_addr* src, const udp_addr* dst);
+bool udp_receive(const buffer* rx_buffer, const udp_addr* trgt, const udp_addr* sndr, uint32_t netmask);
 
 
 /** */

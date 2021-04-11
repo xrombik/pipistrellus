@@ -1,13 +1,23 @@
 #include "pipistrellus.h"
 
 
-uint8_t MAC_BROADCAST[]   = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
-const uint8_t MAC_ZERO[]  = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+const uint8_t  MAC_BROADCAST[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
+const uint8_t  MAC_ZERO[]      = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+const uint8_t  IP_ANY_ADDR[4]  = {  0U,   0U,   0U,   0U};
+const uint16_t IP_ANY_PORT     = 0x0000;
+
 
 extern uint32_t eth_printf(const char* fmt, ...);
 
 
-uint32_t get_checksum(const void *data, uint32_t count)
+void buffer_init(buffer* buf)
+{
+    buf->size_alloc = sizeof buf->data;
+    buf->size_used = 0U;
+};
+
+
+uint16_t get_checksum(const void *data, uint32_t count)
 {
     /* Compute Internet Checksum for "count" bytes beginning at location "addr"  */
     uint32_t sum = 0;
@@ -38,10 +48,32 @@ void udp_init_addr(udp_addr* udp_addr, const uint8_t* addr, const uint16_t port)
 }
 
 
-bool udp_receive(const buffer* rx_buffer, const udp_addr* src, const udp_addr* dst)
+bool udp_receive(const buffer* rx_buffer, const udp_addr* trgt, const udp_addr* sndr, uint32_t netmask)
 {
     // TODO: Заглушка
-    return false;
+    if (rx_buffer->size_used < sizeof(udp_frame))
+        return false;
+    udp_frame* udpf = (udp_frame*) rx_buffer->data;
+    if (udpf->proto != UDP_PROTO)
+        return false;
+
+    if (!((sndr->port == IP_ANY_PORT) || (udpf->trgt_port == IP_ANY_PORT)))
+        if (udpf->sndr_port != sndr->port)
+            return false;
+
+    if (!((sndr->addr == *(const uint32_t*)IP_ANY_ADDR) || (udpf->trgt_addr == *(const uint32_t*)IP_ANY_ADDR)))
+        if (udpf->sndr_addr != sndr->addr)
+            return false;
+    
+    if (udpf->trgt_port != trgt->port)
+        return false;
+    
+    if (udpf->trgt_addr != trgt->addr)
+        return false;
+    
+    netmask = ~ netmask;
+    
+    return ((udpf->trgt_addr & netmask) & (trgt->addr & netmask)) > 0;
 }
 
 
@@ -52,38 +84,35 @@ bool udp_send(buffer* tx_buffer, const udp_addr* src, const udp_addr* dst)
 }
 
 
-bool udp_get_data(const buffer* x_buffer, buffer* udp_buffer)
+bool udp_get_data(const buffer* x_buffer, udp_buffer* udpb)
 {
     udp_frame* udpf = (udp_frame*) x_buffer->data;
     if (udpf->proto != UDP_PROTO)
         return false;
-    uint16_t len = udpf->lendg - 8;
-    if (len > udp_buffer->size_alloc)
-        return false;
-    udp_buffer->data = x_buffer->data + sizeof(udp_frame);
-    udp_buffer->size_used = len;
+    udpb->data = (uint8_t*) x_buffer->data + sizeof(udp_frame);
+    udpb->size_used = udpf->lendg - 8U;
     return true;
 }
 
 
-bool arp_send(buffer* tx_buffer, const buffer* rx_buffer, const mac_addrs* mac_addr, uint32_t ip_addr)
+bool arp_send(buffer* tx_buffer, const buffer* rx_buffer, const mac_addrs* mac_addr, const uint32_t addr)
 {
+    tx_buffer->size_used = 0U;
     if (tx_buffer->size_alloc < sizeof(arp_frame))
         return false;
-    
     if (rx_buffer->size_used < sizeof(arp_frame))
         return false;
     
     arp_frame* tx_arpf = (arp_frame*) tx_buffer->data;
     arp_frame* rx_arpf = (arp_frame*) rx_buffer->data;
     
-    memcpy(tx_arpf->maddrs.src, mac_addr->src,       sizeof tx_arpf->maddrs.src);
-    memcpy(tx_arpf->sndr_mac,   mac_addr->src,       sizeof tx_arpf->sndr_mac);
-    memcpy(tx_arpf->maddrs.dst, rx_arpf->maddrs.src, sizeof tx_arpf->maddrs.dst);
-    memcpy(tx_arpf->trgt_mac,   rx_arpf->sndr_mac,   sizeof tx_arpf->trgt_mac);
+    memcpy(tx_arpf->maddrs.sndr, mac_addr->sndr,       sizeof tx_arpf->maddrs.sndr);
+    memcpy(tx_arpf->sndr_mac,    mac_addr->sndr,       sizeof tx_arpf->sndr_mac);
+    memcpy(tx_arpf->maddrs.trgt, rx_arpf->maddrs.sndr, sizeof tx_arpf->maddrs.trgt);
+    memcpy(tx_arpf->trgt_mac,    rx_arpf->sndr_mac,    sizeof tx_arpf->trgt_mac);
     
     tx_arpf->maddrs.type = rx_arpf->maddrs.type;
-    tx_arpf->sndr_ip     = ip_addr;
+    tx_arpf->sndr_ip     = addr;
     tx_arpf->trgt_ip     = rx_arpf->sndr_ip;
     tx_arpf->opcode      = ARP_REP;
     tx_arpf->hw_type     = rx_arpf->hw_type;
@@ -121,8 +150,8 @@ bool mac_set_addr(buffer* x_buffer, const mac_addrs* addr)
 
 void mac_init_addr(mac_addrs* maddr, const uint8_t* src, const uint8_t* dst)
 {
-    memcpy(maddr->src, src, sizeof maddr->src);
-    memcpy(maddr->dst, dst, sizeof maddr->dst);
+    memcpy(maddr->sndr, src, sizeof maddr->sndr);
+    memcpy(maddr->trgt, dst, sizeof maddr->trgt);
     maddr->type = 0U;
 }
 
@@ -132,25 +161,25 @@ bool mac_receive(const buffer* rx_buffer, const mac_addrs* maddr)
     if (rx_buffer->size_used < sizeof *maddr)
         return false;
     mac_addrs* rx_madrs = (mac_addrs*) rx_buffer->data;
-    if (memcmp(rx_madrs->dst, MAC_BROADCAST, sizeof rx_madrs->dst) == 0)
+    if (memcmp(rx_madrs->trgt, MAC_BROADCAST, sizeof rx_madrs->trgt) == 0)
         return true;
-    if (memcmp(rx_madrs->dst, MAC_ZERO, sizeof rx_madrs->dst) == 0)
-        if (memcmp(rx_madrs->src, MAC_ZERO, sizeof rx_madrs->src) == 0)
+    if (memcmp(rx_madrs->trgt, MAC_ZERO, sizeof rx_madrs->trgt) == 0)
+        if (memcmp(rx_madrs->sndr, MAC_ZERO, sizeof rx_madrs->sndr) == 0)
             return true;
-    return memcmp(rx_madrs->dst, maddr->src, sizeof rx_madrs->dst) == 0;
+    return memcmp(rx_madrs->trgt, maddr->sndr, sizeof rx_madrs->trgt) == 0;
 }
 
 
-bool mac_send(buffer* x_buffer, const mac_addrs* addr)
+bool mac_send(buffer* tx_buffer, const mac_addrs* addr)
 {
-    if (x_buffer->size_alloc < sizeof *addr)
+    if (tx_buffer->size_alloc < sizeof *addr)
         return false;
-    memcpy(x_buffer->data, addr, sizeof *addr);
+    memcpy(tx_buffer->data, addr, sizeof *addr);
     return true;
 }
 
 
-bool icmp_receive(const buffer* rx_buffer, uint32_t ip_addr)
+bool icmp_receive(const buffer* rx_buffer, uint32_t trgt_ip)
 {
     if (rx_buffer->size_used < sizeof (icmp_frame))
         return false;
@@ -161,7 +190,7 @@ bool icmp_receive(const buffer* rx_buffer, uint32_t ip_addr)
         return false;
     if (icmpf->opcode != ICMP_TYPE_ASQ)
         return false;
-    return icmpf->trgt_ip == ip_addr;
+    return icmpf->trgt_ip == trgt_ip;
 }
 
 
@@ -175,8 +204,8 @@ bool icmp_send(buffer* tx_buffer, const buffer* rx_buffer)
     icmp_frame* tx_icmpf = (icmp_frame*) tx_buffer->data;
     icmp_frame* rx_icmpf = (icmp_frame*) rx_buffer->data;
 
-    memcpy(tx_icmpf->maddrs.dst, rx_icmpf->maddrs.src, sizeof tx_icmpf->maddrs.dst);
-    memcpy(tx_icmpf->maddrs.src, rx_icmpf->maddrs.dst, sizeof tx_icmpf->maddrs.src);
+    memcpy(tx_icmpf->maddrs.trgt, rx_icmpf->maddrs.sndr, sizeof tx_icmpf->maddrs.trgt);
+    memcpy(tx_icmpf->maddrs.sndr, rx_icmpf->maddrs.trgt, sizeof tx_icmpf->maddrs.sndr);
     tx_icmpf->maddrs.type = rx_icmpf->maddrs.type;
     tx_icmpf->dsc_ecn     = rx_icmpf->dsc_ecn; 
     tx_icmpf->verlen      = rx_icmpf->verlen;
@@ -197,10 +226,8 @@ bool icmp_send(buffer* tx_buffer, const buffer* rx_buffer)
     memcpy(tx_icmpf->time, rx_icmpf->time, sizeof tx_icmpf->time);
     memcpy(tx_buffer->data + sizeof(*tx_icmpf), rx_buffer->data + sizeof(*rx_icmpf), rx_buffer->size_used - sizeof(*rx_icmpf));
     
-    tx_buffer->size_used = rx_buffer->size_used;
-    // TODO: Разобраться почему нужно "- 4"
-    tx_icmpf->csum       = get_checksum(&tx_icmpf->opcode, tx_buffer->size_used - (uint32_t)(&tx_icmpf->opcode - (uint8_t*)tx_icmpf) - 4);
-    tx_icmpf->hdr_csum   = get_checksum(&tx_icmpf->verlen, (uint32_t) ((uint8_t*) &tx_icmpf->opcode - (uint8_t*) &tx_icmpf->verlen));
-    
+    tx_icmpf->csum        = get_checksum(&tx_icmpf->opcode, tx_buffer->size_used - (uint32_t)((uint8_t*) &tx_icmpf->opcode - (uint8_t*)tx_icmpf));
+    tx_icmpf->hdr_csum    = get_checksum(&tx_icmpf->verlen, (uint32_t) ((uint8_t*) &tx_icmpf->opcode - (uint8_t*) &tx_icmpf->verlen));
+    tx_buffer->size_used  = rx_buffer->size_used;
     return true;
 }
