@@ -3,6 +3,7 @@
 
 [![CMake](https://github.com/xrombik/pipistrellus/actions/workflows/cmake.yml/badge.svg)](https://github.com/xrombik/pipistrellus/actions/workflows/cmake.yml)
 [![Build Status](https://travis-ci.com/xrombik/pipistrellus.svg?branch=main)](https://travis-ci.com/xrombik/pipistrellus)
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/76b81ca9901c41e5a848a30ebc4f479e)](https://www.codacy.com/gh/xrombik/pipistrellus/dashboard?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=xrombik/pipistrellus&amp;utm_campaign=Badge_Grade)
 
 *в процессе разработки ...*
 
