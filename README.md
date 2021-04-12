@@ -2,6 +2,7 @@
 # Текущее состояние
 
 [![CMake](https://github.com/xrombik/pipistrellus/actions/workflows/cmake.yml/badge.svg)](https://github.com/xrombik/pipistrellus/actions/workflows/cmake.yml)
+[![Build Status](https://travis-ci.com/xrombik/pipistrellus.svg?branch=main)](https://travis-ci.com/xrombik/pipistrellus)
 
 *в процессе разработки ...*
 
