@@ -201,6 +201,8 @@ bool icmp_send(buffer* tx_buffer, const buffer* rx_buffer)
     if (tx_buffer->size_alloc < rx_buffer->size_used)
         return false;
 
+    tx_buffer->size_used  = rx_buffer->size_used;
+
     icmp_frame* tx_icmpf = (icmp_frame*) tx_buffer->data;
     icmp_frame* rx_icmpf = (icmp_frame*) rx_buffer->data;
 
@@ -224,10 +226,10 @@ bool icmp_send(buffer* tx_buffer, const buffer* rx_buffer)
     tx_icmpf->le          = rx_icmpf->le;
     
     memcpy(tx_icmpf->time, rx_icmpf->time, sizeof tx_icmpf->time);
-    memcpy(tx_buffer->data + sizeof(*tx_icmpf), rx_buffer->data + sizeof(*rx_icmpf), rx_buffer->size_used - sizeof(*rx_icmpf));
+    memcpy(tx_buffer->data + sizeof(*tx_icmpf), rx_buffer->data + sizeof(*rx_icmpf), tx_buffer->size_used - sizeof(*rx_icmpf));
     
     tx_icmpf->csum        = get_checksum(&tx_icmpf->opcode, tx_buffer->size_used - (uint32_t)((uint8_t*) &tx_icmpf->opcode - (uint8_t*)tx_icmpf));
     tx_icmpf->hdr_csum    = get_checksum(&tx_icmpf->verlen, (uint32_t) ((uint8_t*) &tx_icmpf->opcode - (uint8_t*) &tx_icmpf->verlen));
-    tx_buffer->size_used  = rx_buffer->size_used;
+    
     return true;
 }
