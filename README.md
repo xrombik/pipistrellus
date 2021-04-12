@@ -1,6 +1,7 @@
 
 # Текущее состояние
 
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/346ae29f295646cdba20827563c55595)](https://app.codacy.com/gh/xrombik/pipistrellus?utm_source=github.com&utm_medium=referral&utm_content=xrombik/pipistrellus&utm_campaign=Badge_Grade_Settings)
 [![CMake](https://github.com/xrombik/pipistrellus/actions/workflows/cmake.yml/badge.svg)](https://github.com/xrombik/pipistrellus/actions/workflows/cmake.yml)
 [![Build Status](https://travis-ci.com/xrombik/pipistrellus.svg?branch=main)](https://travis-ci.com/xrombik/pipistrellus)
 
