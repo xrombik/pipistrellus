@@ -1,5 +1,8 @@
 language: cpp
 before_script:
-  - cmake --build . 
+  - mkdir build
+  - cd build
+  - cmake .. 
+  - make
 script:
   - ctest 
