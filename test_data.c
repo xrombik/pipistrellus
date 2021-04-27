@@ -1,6 +1,6 @@
 #include <stdint.h>
 
-#define TEST_CASES_COUNT  2
+#define TEST_CASES_COUNT  3
 
 /** \brief Address Resolution Protocol (request)
     \param Hardware type:       Ethernet (1)
@@ -107,12 +107,12 @@ static const uint8_t icmp_rep_0[98U] = {
 /* 096 */ 0x36, 0x37  };
 
 
-/** Frame (52 bytes) 
-    \brief Udp "запрос"2
+/** \brief Udp "запрос"
     \param Src addr: 172.16.1.10
     \param Dst addr: 172.16.1.30
     \param Src port: 50090
-    \param Dst port: 50090  */
+    \param Dst port: 50090
+    \param Data: "1234567890" */
 static const unsigned char udp_asq_0[52] = {
 /* 000 */ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* ........ */
 /* 008 */ 0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x45, 0x00, /* ......E. */
@@ -124,11 +124,12 @@ static const unsigned char udp_asq_0[52] = {
 
 
 /** Frame (52 bytes)
-    \brief Udp "ответ" 2
-    \param Src addr: 172.16.1.10
-    \param Dst addr: 172.16.1.30
+    \brief Udp "ответ"
+    \param Src addr: 172.16.1.30
+    \param Dst addr: 172.16.1.10
     \param Src port: 50090
-    \param Dst port: 50090  */
+    \param Dst port: 50090
+    \param Data: "1234567890" */
 static const unsigned char udp_rep_0[52] = {
 /* 000 */ 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* ........ */
 /* 008 */ 0x00, 0x00, 0x00, 0x00, 0x08, 0x00, 0x45, 0x00, /* ......E. */

@@ -91,7 +91,7 @@ typedef struct
     uint16_t  prot_type;    /**<  */
     uint8_t   hw_size;      /**<  */
     uint8_t   prot_size;    /**<  */
-    uint16_t  opcode;       /**< код операции, одно из ARP_ASQ, ARP_REP */
+    uint16_t  opcode;       /**< Код операции, одно из ARP_OPCODE_ASQ, ARP_OPCODE_REP */
     uint8_t   sndr_mac[6U]; /**< mac-адрес отправителя */
     uint32_t  sndr_ip;      /**< ip-адрес отправителя */
     uint8_t   trgt_mac[6U]; /**< mac-адрес получателя */
@@ -108,15 +108,15 @@ typedef struct
     uint16_t  length;
     uint16_t  id;
     uint16_t  offset;
-    uint8_t   ttl;       /**< ip поле, время жизни */
-    uint8_t   proto;     /**< ip поле, код протокола */
-    uint16_t  xsum;      /**< ip поле, контрольная сумма */
-    uint32_t  sndr_addr; /**< ip поле, ip-адрес отправителя */
-    uint32_t  trgt_addr; /**< ip поле, ip-адрес получателя */
-    uint16_t  sndr_port; /**< udp поле, ip-порт отправителя */
-    uint16_t  trgt_port; /**< udp поле, ip-порт получателя */
-    uint16_t  lendg;	 /**< udp поле, длинна udp-датаграммы */
-    uint16_t  xsumd;	 /**< udp поле, котрольная сумма udp-датаграммы */
+    uint8_t   ttl;       /**< ip-поле, время жизни */
+    uint8_t   proto;     /**< ip-поле, код протокола */
+    uint16_t  xsum;      /**< ip-поле, контрольная сумма */
+    uint32_t  sndr_addr; /**< ip-поле, ip-адрес отправителя */
+    uint32_t  trgt_addr; /**< ip-поле, ip-адрес получателя */
+    uint16_t  sndr_port; /**< udp-поле, ip-порт отправителя */
+    uint16_t  trgt_port; /**< udp-поле, ip-порт получателя */
+    uint16_t  lendg;	 /**< udp-поле, длинна udp-датаграммы */
+    uint16_t  xsumd;	 /**< udp-поле, котрольная сумма udp-датаграммы */
 			             /**< Здесь начинается пользовательская датаграмма */
 } udp_frame;
 
@@ -141,20 +141,20 @@ bool process_whire(whire* pwhire);
 void buffer_init(buffer* buf);
 
 
-/** */
+/** Compute Internet Checksum for "count" bytes beginning at location "addr" */
 uint16_t get_checksum(const void *data, uint32_t len);
 
 
 /** Заполняет структуру 
  \param[out] maddr Заполняемая структура
- \param[in] sndr_mac mac-адрес отправителя
- \param[in] trgt_mac mac-адрес получателя */
+ \param[in]  sndr_mac mac-адрес отправителя
+ \param[in]  trgt_mac mac-адрес получателя */
 void mac_init_addr(mac_addrs* maddrs, const uint8_t* sndr_mac, const uint8_t* trgt_mac);
 
 
 /** Заполняет поля mac-адресов в буфере
  \param[out] x_buffer Буфер для размещения mac-адресов
- \param[in] maddrs mac-адреса
+ \param[in]  maddrs mac-адреса
  \return true - если адрес размещён, false - если не размещён (недостаточно места) */
 bool mac_set_addr(buffer* x_buffer, const mac_addrs* maddrs);
 
@@ -175,7 +175,7 @@ bool icmp_receive(const buffer* rx_buffer, const uint8_t* ip_addr);
 
 /** Заполняет буфер ответом на icmp-запрос
  \param[out] tx_buffer Буфер в котором будет размещён ответ на icmp-запрос 
- \param[in] rx_buffer Буфер в котором размещён icmp-запрос
+ \param[in]  rx_buffer Буфер в котором размещён icmp-запрос
  \return true - если ответ размещён, false - если иначе (недостаточно места) */
 bool icmp_send(buffer* tx_buffer, const buffer* rx_buffer);
 
@@ -196,7 +196,7 @@ void udp_init_addr(udp_addr* udp_addr, const uint8_t* addr, const uint16_t port)
 
 
 /** Размещает буфер содержащий udp-датаграмму
- \param[in] x_buffer Буфер в котором содержится пакет с udp-датаграммой
+ \param[in]  x_buffer Буфер в котором содержится пакет с udp-датаграммой
  \param[out] udpb Размещаемый udp-буфер
  \return true - если буфер размещён, false - если иначе */
 bool udp_get_data(const buffer* x_buffer, udp_buffer* udpb);

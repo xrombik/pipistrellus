@@ -44,12 +44,10 @@ void buffer_init(buffer* buf)
 
 uint16_t get_checksum(const void *in_data, uint32_t count)
 {
-    /* Compute Internet Checksum for "count" bytes beginning at location "addr"  */
     uint32_t sum = 0U;
     uint16_t* data = (uint16_t*) in_data;
     while (count > 1U)
     {
-        /*  This is the inner loop */
         sum += *data ++;
         count -= 2U;
     }
