@@ -1,19 +1,114 @@
 #include "pipistrellus.h"
 
-
 const uint8_t  MAC_BROADCAST[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 const uint8_t  MAC_ZERO[]      = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 const uint8_t  IP_ANY_ADDR[]   = {  0U,   0U,   0U,   0U};
-const uint16_t IP_ANY_PORT     = 0x0000;
+const uint16_t IP_ANY_PORT     = 0U;
+const uint8_t  IP_BROAD_MASK[] = {0xff, 0xff, 0xff, 0xff};
 
 
 extern int eth_printf(const char* fmt, ...);
 
 
+void udp_addr_clear(udp_addr* udpa)
+{
+    memset(udpa, 0U, sizeof *udpa);
+}
+
+
+void udp_addr_init(udp_addr* udpa, const uint8_t* addr, uint16_t port)
+{
+    udpa->addr = *(uint32_t*) addr;
+    udpa->port = swap16(port);
+}
+
+
+bool udp_send(buffer* tx_buffer, const net_node* self, const net_node* trgt, size_t len)
+{
+    if (tx_buffer->size_alloc < sizeof (udp_frame))
+        return false;
+    
+    udp_frame* udpf = (udp_frame*) tx_buffer->data;
+    
+    memcpy(udpf->maddrs.sndr, self->mac, sizeof udpf->maddrs.sndr);
+    memcpy(udpf->maddrs.trgt, trgt->mac, sizeof udpf->maddrs.trgt);
+    udpf->maddrs.type = ETH_TYPE_IPV4;
+    
+    udpf->sndr_addr = self->udp->addr;
+    udpf->sndr_port = self->udp->port;
+    udpf->trgt_addr = trgt->udp->addr;
+    udpf->trgt_port = trgt->udp->port;
+    udpf->id        = 0U;
+    udpf->flags     = UDP_FLAGS;
+    udpf->verlen    = ICMP_VERLEN;
+    udpf->ttl       = UDP_TTL;
+    udpf->proto     = UDP_PROTO;
+    udpf->xsum      = 0U;
+    udpf->xsumd     = 0U;
+    udpf->tos       = UDP_TOS;
+    udpf->length    = swap16(sizeof *udpf - sizeof udpf->trgt_port - sizeof udpf->sndr_port);
+    udpf->lendg     = swap16(len + sizeof udpf->sndr_addr + sizeof udpf->trgt_addr);
+
+    udpf->xsum = get_checksum(&udpf->verlen, (uint32_t)((uint8_t*)&udpf->sndr_port - (uint8_t*)&udpf->verlen), 0U);
+
+    tx_buffer->size_used = sizeof(udp_frame) + len;
+    return false;       
+}
+
+
+bool udp_get_data(buffer* x_buffer, udp_buffer* udpb)
+{
+    udp_frame* udpf = (udp_frame*) x_buffer->data;
+    uint16_t size_used = swap16(udpf->lendg);
+    if (size_used < (sizeof udpf->sndr_addr + sizeof udpf->trgt_addr))
+        return false;
+    udpb->size_used = size_used - sizeof udpf->sndr_addr - sizeof udpf->trgt_addr;
+    udpb->data = x_buffer->data + sizeof(udp_frame);
+    return true;
+}
+
+
+bool udp_set_data(buffer* x_buffer, udp_buffer* udpb)
+{
+    if (udpb->size_used > x_buffer->size_alloc - sizeof (udp_frame))
+        return false;
+    udpb->data = x_buffer->data + sizeof(udp_frame);
+    return true;
+}
+
+
+bool udp_receive(const buffer* rx_buffer, const udp_addr* trgt, net_node* sndr, const uint8_t* netmask)
+{
+    if (rx_buffer->size_used < sizeof(udp_frame))
+        return false;
+    
+    udp_frame* udpf = (udp_frame*) rx_buffer->data;
+    if (udpf->proto != UDP_PROTO)
+        return false;
+
+    if (udpf->trgt_addr == (*(uint32_t*)IP_BROAD_MASK) & (~ (*(uint32_t*)netmask)))
+        if ((udpf->trgt_addr & (*(uint32_t*)netmask)) == (trgt->addr & (*(uint32_t*)netmask)))
+            return udpf->trgt_port == trgt->port;
+
+    if (sndr->udp->port != IP_ANY_PORT)
+        if (udpf->trgt_port != trgt->port)
+            return false;
+
+    if (sndr->udp->addr != *(uint32_t*)IP_ANY_ADDR)
+        if (udpf->trgt_addr != trgt->addr)
+            return false;
+    
+    sndr->udp->addr = udpf->sndr_addr;
+    sndr->udp->port = udpf->sndr_port;
+    memcpy(sndr->mac, udpf->maddrs.sndr, sizeof udpf->maddrs.sndr);
+    return true;
+}
+
+
 void udp_init_addr(udp_addr* udp_addr, const uint8_t* addr, const uint16_t port)
 {
     udp_addr->addr = *(uint32_t*)addr;
-    udp_addr->port = swap16(port);
+    udp_addr->port = port;
 }
 
 
@@ -42,23 +137,22 @@ void buffer_init(buffer* buf)
 }
 
 
-uint16_t get_checksum(const void *in_data, uint32_t count)
+uint16_t get_checksum(const void *in_data, size_t count, uint32_t sum)
 {
-    uint32_t sum = 0U;
     uint16_t* data = (uint16_t*) in_data;
+    
     while (count > 1U)
     {
         sum += *data ++;
-        count -= 2U;
+        count -= sizeof data[0];
     }
 
-    /*  Add left-over byte, if any */
     if (count > 0U)
         sum += * (uint8_t*) data;
 
-    /*  Fold 32-bit sum to 16 bits */
     while (sum >> 16U)
        sum = (sum & 0xffff) + (sum >> 16U);
+
    return ~((uint16_t)sum);
 }
 
@@ -197,8 +291,8 @@ bool icmp_send(buffer* tx_buffer, const buffer* rx_buffer)
     memcpy(tx_icmpf->time, rx_icmpf->time, sizeof tx_icmpf->time);
     memcpy(tx_buffer->data + sizeof(*tx_icmpf), rx_buffer->data + sizeof(*rx_icmpf), tx_buffer->size_used - sizeof(*tx_icmpf));
     
-    tx_icmpf->csum        = get_checksum(&tx_icmpf->opcode, tx_buffer->size_used - (uint32_t)((uint8_t*) &tx_icmpf->opcode - (uint8_t*)tx_icmpf));
-    tx_icmpf->hdr_csum    = get_checksum(&tx_icmpf->verlen, (uint32_t) ((uint8_t*) &tx_icmpf->opcode - (uint8_t*) &tx_icmpf->verlen));
+    tx_icmpf->csum        = get_checksum(&tx_icmpf->opcode, tx_buffer->size_used - (uint32_t)((uint8_t*) &tx_icmpf->opcode - (uint8_t*)tx_icmpf), 0U);
+    tx_icmpf->hdr_csum    = get_checksum(&tx_icmpf->verlen, (uint32_t) ((uint8_t*) &tx_icmpf->opcode - (uint8_t*) &tx_icmpf->verlen), 0U);
     
     return true;
 }

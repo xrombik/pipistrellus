@@ -7,10 +7,10 @@
 
 /** \file */
 
-extern uint8_t MAC_BROADCAST[6];
-const uint8_t  NULL_ADDR[] = {0x00, 0x00, 0x00, 0x00};
+extern uint8_t  MAC_BROADCAST[6U];
+extern uint8_t  IP_ANY_ADDR[4U];
+extern uint16_t IP_ANY_PORT;
 
-/* mac-адрес этого узла */
 const uint8_t  SELF_MAC[]     = {0x70, 0x4d, 0x7b, 0x65, 0x2a, 0xd0}; /**< mac-адрес этого узла */
 const uint8_t  SELF_IP_ADDR[] = {172,  16,   1,  10};                 /**< ip-адрес этого узла */
 const uint8_t  IP_MASK[]      = {255, 255, 255,   0};                 /**< маска подсети */
@@ -25,9 +25,8 @@ uint16_t    test_rep_len  [TEST_CASES_COUNT];
 
 int main(int argc, char** argv)
 {
-    /* Настройка оборудования.
-       Нетопырю всё равно что здесь происходит
-       ... */
+    /* Настройка оборудования.Нетопырю всё равно что здесь происходит
+    ... */
 
     /* Здесь пользователь сообщает нетопырю адреса
        и размеры буферов для приёма и передачи */
@@ -36,7 +35,22 @@ int main(int argc, char** argv)
 
     buffer tx_buffer;
     buffer_init(&tx_buffer);
-  
+
+    uint8_t  client_mac[6U];    /**< mac-адрес внешнего узла (udp-клиент) */
+    udp_addr client_udp_addr;   /**< udp-адрес внешнего узла (udp-клиент) */
+    net_node client;    
+    client.mac = client_mac;
+    client.udp = &client_udp_addr;
+    udp_addr_clear(client.udp);
+
+    uint8_t  self_mac[6U];      /**< mac-адрес текущего узла (udp-сервер) */
+    udp_addr self_udp_addr;     /**< udp-адрес текущего узла (udp-сервер) */
+    net_node self;
+    self.mac = self_mac;
+    self.udp = &self_udp_addr;
+    memcpy(self.mac, SELF_MAC, sizeof SELF_MAC);
+    udp_addr_init(self.udp, SELF_IP_ADDR, IP_PORT);
+
     /* Заполнение тестовых случаев */
     test_asq_data[0] = arp_asq_0;
     test_asq_len [0] = sizeof arp_asq_0;
@@ -53,7 +67,6 @@ int main(int argc, char** argv)
     test_rep_data[2] = udp_rep_0;
     test_rep_len [2] = sizeof udp_rep_0;
 
-  
     /* Здесь оборудование должно быть готово для приёма и передачи данных */
     for (test_case_i = 0U; test_case_i < sizeof test_asq_data / sizeof test_asq_data[0]; test_case_i ++)
     {
@@ -62,9 +75,6 @@ int main(int argc, char** argv)
 
         if (!mac_receive(&rx_buffer, SELF_MAC))
             continue;
-
-        /* Здесь нетопырь ожидает, что rx_buffer.data будет содержать mac-адреса,
-           тип, IP-заголовок и данные, а rx_buffer.size длину eth-фрейма */
 
         /* Здесь нетопырь обработает запросы ARP */
         if (arp_receive(&rx_buffer, SELF_IP_ADDR))
@@ -75,6 +85,18 @@ int main(int argc, char** argv)
         else if (icmp_receive(&rx_buffer, SELF_IP_ADDR))
         {
             icmp_send(&tx_buffer, &rx_buffer);
+        }
+        /* Здесь нетопырь обработает запросы UDP */
+        else if (udp_receive(&rx_buffer, self.udp, &client, IP_MASK))
+        {
+            /* Здесь пользователь обрабатывает принятую
+               датаграмму, например отправляет её обратно */
+            udp_buffer rx_udpb, tx_udpb;
+            udp_get_data(&rx_buffer, &rx_udpb);
+            tx_udpb.size_used = rx_udpb.size_used;
+            udp_set_data(&tx_buffer, &tx_udpb);
+            memcpy(tx_udpb.data, rx_udpb.data, rx_udpb.size_used);
+            udp_send(&tx_buffer, &self, &client, rx_udpb.size_used);
         }
         else
         {

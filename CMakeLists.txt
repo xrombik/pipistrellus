@@ -12,7 +12,7 @@ list(REMOVE_ITEM SRC_LIST "test_data.c")
 message(STATUS "SRC_LIST:\"${SRC_LIST}\"")
 
 message(STATUS "CMAKE_BUILD_TYPE: \"${CMAKE_BUILD_TYPE}\"")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fstack-protector-all -fstack-check -fstack-protector-strong -fsanitize=bounds -fsanitize=vla-bound -fsanitize=leak -pedantic -fsanitize=address -Wall -Wfatal-errors -g -O0 --std=${CPPSTD}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fanalize -fstack-protector-all -fstack-check -fstack-protector-strong -fsanitize=bounds -fsanitize=vla-bound -fsanitize=leak -pedantic -fsanitize=address -Wall -Wfatal-errors -g -O0 --std=${CPPSTD}")
 
 add_executable(${PROJECT_NAME} ${SRC_LIST})
 target_link_libraries(${PROJECT_NAME})
