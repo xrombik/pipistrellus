@@ -23,19 +23,19 @@ void udp_addr_init(udp_addr* udpa, const uint8_t* addr, uint16_t port)
 }
 
 
-bool udp_send(buffer* tx_buffer, const net_node* self, const net_node* trgt, size_t len)
+bool udp_send(buffer* tx_buffer, const net_node* sndr, const net_node* trgt, size_t len)
 {
     if (tx_buffer->size_alloc < sizeof (udp_frame))
         return false;
     
     udp_frame* udpf = (udp_frame*) tx_buffer->data;
     
-    memcpy(udpf->maddrs.sndr, self->mac, sizeof udpf->maddrs.sndr);
+    memcpy(udpf->maddrs.sndr, sndr->mac, sizeof udpf->maddrs.sndr);
     memcpy(udpf->maddrs.trgt, trgt->mac, sizeof udpf->maddrs.trgt);
     udpf->maddrs.type = ETH_TYPE_IPV4;
     
-    udpf->sndr_addr = self->udp->addr;
-    udpf->sndr_port = self->udp->port;
+    udpf->sndr_addr = sndr->udp->addr;
+    udpf->sndr_port = sndr->udp->port;
     udpf->trgt_addr = trgt->udp->addr;
     udpf->trgt_port = trgt->udp->port;
     udpf->id        = 0U;
