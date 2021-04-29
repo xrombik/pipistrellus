@@ -86,7 +86,7 @@ bool udp_receive(const buffer* rx_buffer, const udp_addr* trgt, net_node* sndr, 
     if (udpf->proto != UDP_PROTO)
         return false;
 
-    if (udpf->trgt_addr == (*(uint32_t*)IP_BROAD_MASK) & (~ (*(uint32_t*)netmask)))
+    if (udpf->trgt_addr == ((*(uint32_t*)IP_BROAD_MASK) & (~ (*(uint32_t*)netmask))))
         if ((udpf->trgt_addr & (*(uint32_t*)netmask)) == (trgt->addr & (*(uint32_t*)netmask)))
             return udpf->trgt_port == trgt->port;
 
