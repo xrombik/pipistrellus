@@ -18,7 +18,7 @@ void udp_addr_clear(udp_addr* udpa)
 
 void udp_addr_init(udp_addr* udpa, const uint8_t* addr, uint16_t port)
 {
-    udpa->addr = *(uint32_t*) addr;
+    memcpy(&udpa->addr, addr, sizeof udpa->addr);
     udpa->port = swap16(port);
 }
 
@@ -107,7 +107,7 @@ bool udp_receive(const buffer* rx_buffer, const udp_addr* trgt, net_node* sndr, 
 
 void udp_init_addr(udp_addr* udp_addr, const uint8_t* addr, const uint16_t port)
 {
-    udp_addr->addr = *(uint32_t*)addr;
+    memcpy(&udp_addr->addr, addr, sizeof udp_addr->addr);
     udp_addr->port = port;
 }
 
