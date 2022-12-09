@@ -52,7 +52,7 @@ bool udp_send(buffer* tx_buffer, const net_node* sndr, const net_node* trgt, siz
     udpf->xsum = get_checksum(&udpf->verlen, (uint32_t)((uint8_t*)&udpf->sndr_port - (uint8_t*)&udpf->verlen), 0U);
 
     tx_buffer->size_used = sizeof(udp_frame) + len;
-    return false;       
+    return true;       
 }
 
 
